@@ -3,46 +3,33 @@ import numpy as np
 import cv2
 import re
 import pandas as pd
-from PIL import Image, ImageDraw
-import easyocr
+from PIL import Image
+import pytesseract
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Fake Certificate Detection", layout="wide")
 
 st.title("📜 Fake Coursera Certificate Detection")
 
-# ---------------- LOAD OCR ----------------
-reader = easyocr.Reader(['en'])
-
 # ---------------- LOAD DATASET ----------------
 @st.cache_data
 def load_registry():
-    df = pd.read_csv("synthetic_coursera_registry.csv")
-    return df
+    return pd.read_csv("synthetic_coursera_registry.csv")
 
 registry = load_registry()
 
 # ---------------- OCR FUNCTION ----------------
 def run_ocr(image):
-    results = reader.readtext(np.array(image))
+    # Convert PIL → OpenCV format
+    img = np.array(image)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    text = " ".join([res[1] for res in results])
+    # Improve OCR accuracy
+    gray = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)[1]
 
-    data = []
-    for (bbox, txt, prob) in results:
-        x1, y1 = int(bbox[0][0]), int(bbox[0][1])
-        x2, y2 = int(bbox[2][0]), int(bbox[2][1])
-        data.append({
-            "text": txt,
-            "left": x1,
-            "top": y1,
-            "width": x2 - x1,
-            "height": y2 - y1
-        })
+    text = pytesseract.image_to_string(gray)
 
-    df = pd.DataFrame(data)
-
-    return text, df
+    return text
 
 # ---------------- EXTRACT URL ----------------
 def extract_url(text):
@@ -101,7 +88,7 @@ if uploaded_file:
         st.image(image, caption="Uploaded Certificate", use_container_width=True)
 
     # OCR
-    text, df = run_ocr(image)
+    text = run_ocr(image)
 
     # URL extraction
     url = extract_url(text)
