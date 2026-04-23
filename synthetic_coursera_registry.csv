@@ -1,0 +1,6 @@
+credential_id,credential_url,candidate_name,course_name,issue_date
+CRS-AI-1001,https://coursera.org/verify/CRS-AI-1001,Ananya Sharma,Introduction to Artificial Intelligence,2024-05-12
+CRS-ML-1002,https://coursera.org/verify/CRS-ML-1002,Rahul Verma,Machine Learning Foundations,2024-06-03
+CRS-DS-1003,https://coursera.org/verify/CRS-DS-1003,Meera Nair,Data Science with Python,2024-07-18
+CRS-CY-1004,https://coursera.org/verify/CRS-CY-1004,Arjun Patel,Cyber Security Basics,2024-08-09
+CRS-CL-1005,https://coursera.org/verify/CRS-CL-1005,Diya Menon,Cloud Computing Essentials,2024-09-14
