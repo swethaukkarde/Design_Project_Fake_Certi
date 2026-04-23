@@ -3,5 +3,4 @@ opencv-python-headless
 numpy
 pillow
 easyocr
-beautifulsoup4
-requests
+pandas
