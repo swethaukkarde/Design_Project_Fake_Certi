@@ -6,6 +6,9 @@ import pandas as pd
 from PIL import Image
 import pytesseract
 
+# ✅ FIX: Tell pytesseract where Tesseract is installed
+pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Fake Certificate Detection", layout="wide")
 
@@ -20,7 +23,6 @@ registry = load_registry()
 
 # ---------------- OCR FUNCTION ----------------
 def run_ocr(image):
-    # Convert PIL → OpenCV format
     img = np.array(image)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -28,7 +30,6 @@ def run_ocr(image):
     gray = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)[1]
 
     text = pytesseract.image_to_string(gray)
-
     return text
 
 # ---------------- EXTRACT URL ----------------
@@ -36,23 +37,35 @@ def extract_url(text):
     urls = re.findall(r'https?://\S+', text)
     return urls[0] if urls else ""
 
-# ---------------- MATCH FUNCTION ----------------
+# ---------------- SMART NAME MATCH ----------------
 def match_with_registry(text, url):
     if not url:
         return None, "URL not found"
 
     match = registry[registry["credential_url"].str.contains(url, na=False)]
 
-    if not match.empty:
-        record = match.iloc[0]
-        name = record["candidate_name"]
-
-        if name.lower() in text.lower():
-            return record, "Match"
-        else:
-            return record, "Name Mismatch"
-    else:
+    if match.empty:
         return None, "URL not found in database"
+
+    record = match.iloc[0]
+    original_name = record["candidate_name"].strip().lower()
+
+    # -------- CLEAN OCR TEXT --------
+    lines = text.split("\n")
+    lines = [l.strip() for l in lines if len(l.strip()) > 2]
+
+    possible_names = []
+
+    for line in lines:
+        if len(line.split()) <= 3 and "course" not in line.lower():
+            possible_names.append(line.lower())
+
+    # -------- MATCH CHECK --------
+    for name in possible_names:
+        if original_name in name or name in original_name:
+            return record, "Match"
+
+    return record, "Name Mismatch"
 
 # ---------------- TAMPERING DETECTION ----------------
 def detect_tampering(image):
@@ -96,7 +109,7 @@ if uploaded_file:
     # Matching
     record, status = match_with_registry(text, url)
 
-    # Tampering
+    # Tampering detection
     tampered = detect_tampering(image)
 
     with col2:
@@ -109,10 +122,10 @@ if uploaded_file:
 
         st.write(f"🔗 URL: {url}")
 
-    # Show tampered image
+    # Show tampered regions
     st.subheader("🚨 Tampered Region Detection")
     st.image(tampered, use_container_width=True)
 
-    # Extracted text
+    # Show extracted text
     with st.expander("📄 Extracted Text"):
         st.write(text)
